@@ -1,126 +1,121 @@
 'use client';
 
-import { Metadata } from "next"
 import { Button } from "components/Button/Button"
 import { useState, useRef, useEffect } from 'react';
+import { modelInfos } from './api/generateImage/modelInfos';
 
-import { LP_GRID_ITEMS } from "lp-items"
-
-// export const metadata: Metadata = {
-//   title: "Fred Image Generator",
-//   twitter: {
-//     card: "summary_large_image",
-//   },
-//   openGraph: {
-//     url: "https://next-enterprise.vercel.app/",
-//     images: [
-//       {
-//         width: 1200,
-//         height: 630,
-//         url: "https://raw.githubusercontent.com/Blazity/next-enterprise/main/.github/assets/project-logo.png",
-//       },
-//     ],
-//   },
-// }
-
-function splitWordAndReturnWordCount(prompt: string) {
-  const words = prompt.split(" ");
-  return words.length;
+interface ImageInfo {
+  url: string;
+  width?: number;
+  height?: number;
+  content_type: string;
+  timings?: any;
+  prompt: string;
+  requestId: string;
+  modelName: string;
 }
+
+const blankImageInfo: ImageInfo = { url: "", width: 0, height: 0, content_type: "", timings: {}, prompt: "", requestId: "", modelName: "" }
+
 function GetWordCountDifference(prompt1: string, prompt2: string) {
 
   const words1 = prompt1.split(" ");
   const words2 = prompt2.split(" ");
-
-  console.log(`word count difference: ${words1.length} - ${words2.length},  ${words1.length - words2.length}`);
-
   return words1.length - words2.length;
 }
+
 function IsTimeToReGenerateImage(prompt1: string, prompt2: string) {
 
   const wordCountDifference = GetWordCountDifference(prompt1, prompt2);
   return wordCountDifference >= 3;
 }
 
-const defaultCurrentPrompt = `A smiling blonde woman`; // `A smiling blonde woman sitting on a chair with legs wide open in front of Dunkin Donuts in new-England`;
+const defaultCurrentPrompt = `A smiling blonde woman in BIKINI, sitting on a chair with legs wide open in front of Dunkin Donuts in new-England`;
+
+
+const callImageGeneratorApi = async (prompt: string, modelName: string) => {
+
+  console.log("callImageGeneratorApi START");
+  const response = await fetch("/api/generateImage", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ prompt, modelName }),
+  });
+  const data = await response.json() as ImageInfo;
+  console.log('callImageGeneratorApi END', data);
+  return data;
+};
 
 export default function Web() {
 
   const [previousPrompt, setPreviousPrompt] = useState(defaultCurrentPrompt);
   const [currentPrompt, setCurrentPrompt] = useState(defaultCurrentPrompt);
-  const [imageUrl, setImageUrl] = useState('');
+  const [imageInfo, setImageInfo] = useState<ImageInfo>(blankImageInfo);
+  const [computingImage, setComputingImage] = useState(false);
+  const [modelName, setModelName] = useState(modelInfos.length > 0 ? modelInfos[0]?.name : "");
 
-  console.log(`imageUrl: ${imageUrl}`);
 
-  const callImageGeneratorApi = async (prompt: string) => {
-
-    console.log("Generating image");
-    const response = await fetch("/api/generateImage", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt }),
-    });
-    const data = await response.json() as { status: string, imageUrl: string };
-    console.log(data);
-    return data.imageUrl;
+  const generateNewImage = async (prompt: string, modelName: string) => {
+    try {
+      console.log("Regenerate image START");
+      setComputingImage(true);
+      setPreviousPrompt(prompt);
+      const newImageInfo = await callImageGeneratorApi(prompt, modelName);
+      setImageInfo(newImageInfo);
+    }
+    catch (error) {
+      console.error("Error generating image", error);
+      setImageInfo(blankImageInfo);
+    }
+    finally {
+      setComputingImage(false);
+      console.log("Regenerate image END");
+    }
   };
 
-  const generateNewImage = async (prompt: string) => {
-
-    console.log("Regenerate image");
-    setPreviousPrompt(prompt);
-    var url = await callImageGeneratorApi(prompt);
-    setImageUrl(url);
-  };
-
-  const onPromptChange = async (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  const onPromptChange = async (e: React.ChangeEvent<HTMLTextAreaElement>, modelName: string) => {
 
     setCurrentPrompt(e.target.value);
     if (IsTimeToReGenerateImage(e.target.value, previousPrompt)) {
-      generateNewImage(e.target.value);
+      generateNewImage(e.target.value, modelName);
     }
   };
 
   return (
     <>
       <section className="bg-white dark:bg-gray-900">
-        <div className="mx-auto grid max-w-(--breakpoint-xl) px-4 py-8 text-center lg:py-16">
+        <div className="mx-auto grid max-w-(--breakpoint-xl) px-1 py-1 text-center lg:py-3">
           <div className="mx-auto place-self-center">
-            <h1 className="mb-4 max-w-2xl text-4xl leading-none font-extrabold tracking-tight md:text-5xl xl:text-5xl dark:text-white">
+
+            <h1 className="mb-4 max-w-2xl text-4xl leading-none font-extrabold tracking-tight md:text-3xl xl:text-3xl dark:text-white mx-auto">
               Fred Image Generator
             </h1>
-            <p className="mb-6 max-w-2xl font-light text-gray-500 md:text-lg lg:mb-8 lg:text-xl dark:text-gray-400">
-              Prompt:
-            </p>
 
-            <textarea value={currentPrompt} onChange={onPromptChange} rows={4}
-              className="border border-black m-2 p-2 rounded w-full max-w-2xl" />
+            {computingImage && <div>Computing image...</div>}
+
+            prompt:
+            <textarea value={currentPrompt} onChange={(e) => onPromptChange(e, modelName as string)} rows={4} cols={250} className="border border-black m-2 p-2 rounded w-full max-w-2xl" />
 
             <br />
 
-            {imageUrl && <img src={imageUrl} alt="" />}
+            <select value={modelName} onChange={(e) => setModelName(e.target.value)} className="border border-black m-2 p-2 rounded ">
+              {modelInfos.map((modelInfo) => (
+                <option key={modelInfo.name} value={modelInfo.name}>
+                  {modelInfo.name}
+                </option>
+              ))}
+            </select>
 
-            <Button href="#" onClick={() => generateNewImage(currentPrompt)} className="mr-3"> Generate New Image </Button>
+            <Button href="#" onClick={() => generateNewImage(currentPrompt, modelName as string)} className="mr-3" size="sm"> Generate Image </Button>
+            <br />
+
+            {imageInfo && imageInfo.url && <div> Image size: {imageInfo.width} x {imageInfo.height}, timings: {imageInfo.timings}, model: {imageInfo.modelName}</div>}
+            {imageInfo && imageInfo.url && <img src={imageInfo.url} />}
 
             {/* <Button href="https://vercel.com/new/git/external?repository-url=https://github.com/Blazity/next-enterprise" intent="secondary"> Deploy Now</Button> */}
           </div>
         </div>
       </section>
-      {/* <section className="bg-white dark:bg-gray-900">
-        <div className="mx-auto max-w-(--breakpoint-xl) px-4 py-8 sm:py-16 lg:px-6">
-          <div className="justify-center space-y-8 md:grid md:grid-cols-2 md:gap-12 md:space-y-0 lg:grid-cols-3">
-            {LP_GRID_ITEMS.map((singleItem) => (
-              <div key={singleItem.title} className="flex flex-col items-center justify-center text-center">
-                <div className="bg-primary-100 dark:bg-primary-900 mb-4 flex size-10 items-center justify-center rounded-full p-1.5 text-blue-700 lg:size-12">
-                  {singleItem.icon}
-                </div>
-                <h3 className="mb-2 text-xl font-bold dark:text-white">{singleItem.title}</h3>
-                <p className="text-gray-500 dark:text-gray-400">{singleItem.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section> */}
     </>
   )
 }

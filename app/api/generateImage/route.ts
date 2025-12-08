@@ -1,9 +1,42 @@
+import { fal } from "@fal-ai/client";
+import { modelInfos } from "./modelInfos";
+
 // http://localhost:3000/api/generateImage
 
-const lastImageUrl = 'https://v3b.fal.media/files/b/0a8571d1/qvFR_JlD3hremyp8I-x3E.jpg';
+const round1 = (n: number) => Math.round(n * 10) / 10;
 
 export async function POST(request: Request) {
-  const { prompt } = await request.json() as { prompt: string };
-  console.log(prompt);
-  return Response.json({ status: "ok", imageUrl: lastImageUrl })
+
+  const { prompt, modelName } = await request.json() as { prompt: string, modelName: string };
+  const modelInfo = modelInfos.find((modelInfo) => modelInfo.name === modelName);
+  if (!modelInfo)
+    throw new Error(`Model ${modelName} not found`);
+
+  console.log(`Call model: ${modelInfo.name}`);
+
+  const result = await fal.subscribe(modelInfo.model, { // THE FAL_KEY is in the machine environment variables
+    input: { prompt: prompt },
+    logs: true,
+    onQueueUpdate: (update) => {
+      if (update.status === "IN_PROGRESS") {
+        update.logs.map((log) => log.message).forEach(console.log);
+      }
+    }
+  });
+
+  console.log("Result: ", result);
+
+  const r = {
+    url: result.data.images[0]?.url,
+    width: result.data.images[0]?.width,
+    height: result.data.images[0]?.height,
+    content_type: result.data.images[0]?.content_type,
+    timings: round1(result.data?.timings?.inference),
+    prompt: result.data?.prompt,
+    requestId: result.requestId,
+    description: result.data?.description, // nanobanana has description
+    modelName: modelInfo.name,
+  }
+
+  return Response.json(r)
 }
