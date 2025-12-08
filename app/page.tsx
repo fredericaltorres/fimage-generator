@@ -48,10 +48,9 @@ export default function Web() {
 
   const [previousPrompt, setPreviousPrompt] = useState(defaultCurrentPrompt);
   const [currentPrompt, setCurrentPrompt] = useState(defaultCurrentPrompt);
+  const [imageUrl, setImageUrl] = useState('');
 
-  // console.log(`previousPrompt: ${previousPrompt}`);
-  // console.log(`currentPrompt: ${currentPrompt}`);
-
+  console.log(`imageUrl: ${imageUrl}`);
 
   const callImageGeneratorApi = async (prompt: string) => {
 
@@ -61,17 +60,17 @@ export default function Web() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ prompt }),
     });
-    const data = await response.json();
+    const data = await response.json() as { status: string, imageUrl: string };
     console.log(data);
-    //return data.imageUrl;
+    return data.imageUrl;
   };
-
 
   const generateNewImage = async (prompt: string) => {
 
-    console.log("Time to regenerate image");
+    console.log("Regenerate image");
     setPreviousPrompt(prompt);
-    await callImageGeneratorApi(prompt);
+    var url = await callImageGeneratorApi(prompt);
+    setImageUrl(url);
   };
 
   const onPromptChange = async (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -99,7 +98,7 @@ export default function Web() {
 
             <br />
 
-            {/* <img src={imageUrl} alt="" /> */}
+            {imageUrl && <img src={imageUrl} alt="" />}
 
             <Button href="#" onClick={() => generateNewImage(currentPrompt)} className="mr-3"> Generate New Image </Button>
 
