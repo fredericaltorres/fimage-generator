@@ -23,13 +23,65 @@ import { LP_GRID_ITEMS } from "lp-items"
 //   },
 // }
 
-const defaultInput = `A smiling blonde woman sitting on a chair with legs wide open in front of Dunkin Donuts in new-England`;
+function splitWordAndReturnWordCount(prompt: string) {
+  const words = prompt.split(" ");
+  return words.length;
+}
+function GetWordCountDifference(prompt1: string, prompt2: string) {
 
-const lastImageUrl = 'https://v3b.fal.media/files/b/0a8571d1/qvFR_JlD3hremyp8I-x3E.jpg';
+  const words1 = prompt1.split(" ");
+  const words2 = prompt2.split(" ");
+
+  console.log(`word count difference: ${words1.length} - ${words2.length},  ${words1.length - words2.length}`);
+
+  return words1.length - words2.length;
+}
+function IsTimeToReGenerateImage(prompt1: string, prompt2: string) {
+
+  const wordCountDifference = GetWordCountDifference(prompt1, prompt2);
+  return wordCountDifference >= 3;
+}
+
+const defaultCurrentPrompt = `A smiling blonde woman`; // `A smiling blonde woman sitting on a chair with legs wide open in front of Dunkin Donuts in new-England`;
 
 export default function Web() {
-  const [input, setInput] = useState(defaultInput);
-  const [imageUrl, setImageUrl] = useState(lastImageUrl);
+
+  const [previousPrompt, setPreviousPrompt] = useState(defaultCurrentPrompt);
+  const [currentPrompt, setCurrentPrompt] = useState(defaultCurrentPrompt);
+
+  // console.log(`previousPrompt: ${previousPrompt}`);
+  // console.log(`currentPrompt: ${currentPrompt}`);
+
+
+  const callImageGeneratorApi = async (prompt: string) => {
+
+    console.log("Generating image");
+    const response = await fetch("/api/generateImage", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt }),
+    });
+    const data = await response.json();
+    console.log(data);
+    //return data.imageUrl;
+  };
+
+
+  const generateNewImage = async (prompt: string) => {
+
+    console.log("Time to regenerate image");
+    setPreviousPrompt(prompt);
+    await callImageGeneratorApi(prompt);
+  };
+
+  const onPromptChange = async (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+
+    setCurrentPrompt(e.target.value);
+    if (IsTimeToReGenerateImage(e.target.value, previousPrompt)) {
+      generateNewImage(e.target.value);
+    }
+  };
+
   return (
     <>
       <section className="bg-white dark:bg-gray-900">
@@ -42,14 +94,15 @@ export default function Web() {
               Prompt:
             </p>
 
-            <textarea value={input} onChange={(e) => setInput(e.target.value)} rows={4}
+            <textarea value={currentPrompt} onChange={onPromptChange} rows={4}
               className="border border-black m-2 p-2 rounded w-full max-w-2xl" />
 
             <br />
 
-            <img src={imageUrl} alt="" />
+            {/* <img src={imageUrl} alt="" /> */}
 
-            <Button href="https://github.com/Blazity/next-enterprise" className="mr-3"> Get started </Button>
+            <Button href="#" onClick={() => generateNewImage(currentPrompt)} className="mr-3"> Generate New Image </Button>
+
             {/* <Button href="https://vercel.com/new/git/external?repository-url=https://github.com/Blazity/next-enterprise" intent="secondary"> Deploy Now</Button> */}
           </div>
         </div>
