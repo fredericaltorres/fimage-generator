@@ -5,6 +5,9 @@ import { modelInfos } from "./modelInfos";
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
+const width = Math.trunc(1280 / 3 * 2);
+const height = Math.trunc(720 / 3 * 2);
+
 export async function POST(request: Request) {
 
   const { prompt, modelName } = await request.json() as { prompt: string, modelName: string };
@@ -15,9 +18,18 @@ export async function POST(request: Request) {
   console.log(`Call model: ${modelInfo.name}`);
 
   const result = await fal.subscribe(modelInfo.model, { // THE FAL_KEY is in the machine environment variables
-    input: { prompt: prompt },
+    input: {
+      prompt: prompt,
+      image_size: { "width": width, "height": height },
+      num_images: 1,
+      enable_safety_checker: false,
+      //"output_format": "jpeg",
+      acceleration: "none",
+      //seed: 123457,
+    },
     logs: true,
     onQueueUpdate: (update) => {
+      console.log("onQueueUpdate", update.status);
       if (update.status === "IN_PROGRESS") {
         update.logs.map((log) => log.message).forEach(console.log);
       }

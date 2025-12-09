@@ -24,14 +24,15 @@ function GetWordCountDifference(prompt1: string, prompt2: string) {
   return words1.length - words2.length;
 }
 
+const MAX_WORD_TRIGGER = 4;
+
 function IsTimeToReGenerateImage(prompt1: string, prompt2: string) {
 
   const wordCountDifference = GetWordCountDifference(prompt1, prompt2);
-  return wordCountDifference >= 3;
+  return wordCountDifference >= MAX_WORD_TRIGGER;
 }
 
-const defaultCurrentPrompt = `A smiling blonde woman in BIKINI, sitting on a chair with legs wide open in front of Dunkin Donuts in new-England`;
-
+const defaultCurrentPrompt = ``;
 
 const callImageGeneratorApi = async (prompt: string, modelName: string) => {
 
@@ -54,6 +55,13 @@ export default function Web() {
   const [computingImage, setComputingImage] = useState(false);
   const [modelName, setModelName] = useState(modelInfos.length > 0 ? modelInfos[0]?.name : "");
 
+  const modelInfo = modelInfos.find((modelInfo) => modelInfo.name === modelName);
+
+  const clearPrompt = () => {
+    setCurrentPrompt(defaultCurrentPrompt);
+    setPreviousPrompt(defaultCurrentPrompt);
+    setImageInfo(blankImageInfo);
+  };
 
   const generateNewImage = async (prompt: string, modelName: string) => {
     try {
@@ -75,8 +83,12 @@ export default function Web() {
 
   const onPromptChange = async (e: React.ChangeEvent<HTMLTextAreaElement>, modelName: string) => {
 
+    const model = modelInfos.find((modelInfo) => modelInfo.name === modelName);
+    if (!model)
+      throw new Error(`Model ${modelName} not found`);
+
     setCurrentPrompt(e.target.value);
-    if (IsTimeToReGenerateImage(e.target.value, previousPrompt)) {
+    if (model.autoTrigger && IsTimeToReGenerateImage(e.target.value, previousPrompt)) {
       generateNewImage(e.target.value, modelName);
     }
   };
@@ -93,23 +105,31 @@ export default function Web() {
 
             {computingImage && <div>Computing image...</div>}
 
-            prompt:
-            <textarea value={currentPrompt} onChange={(e) => onPromptChange(e, modelName as string)} rows={4} cols={250} className="border border-black m-2 p-2 rounded w-full max-w-2xl" />
+            <span className="flex">
+              <span className="m-2">Prompt:</span>
+              <textarea value={currentPrompt} onChange={(e) => onPromptChange(e, modelName as string)} rows={4} cols={250} className="border border-black m-2 p-2 rounded w-full max-w-2xl" />
+            </span>
 
-            <br />
-
-            <select value={modelName} onChange={(e) => setModelName(e.target.value)} className="border border-black m-2 p-2 rounded ">
-              {modelInfos.map((modelInfo) => (
-                <option key={modelInfo.name} value={modelInfo.name}>
-                  {modelInfo.name}
-                </option>
-              ))}
-            </select>
+            <span className="flex">
+              <span className="m-2">Model:</span>&nbsp;&nbsp;
+              <select value={modelName} onChange={(e) => setModelName(e.target.value)} className="border border-black m-2 p-2 rounded ">
+                {modelInfos.map((modelInfo) => (
+                  <option key={modelInfo.name} value={modelInfo.name}>
+                    {modelInfo.name}
+                  </option>
+                ))}
+              </select>
+              <span className="m-2">{modelInfo?.autoTrigger && <div>Auto trigger enabled</div>}</span>
+            </span>
 
             <Button href="#" onClick={() => generateNewImage(currentPrompt, modelName as string)} className="mr-3" size="sm"> Generate Image </Button>
+            <Button href="#" onClick={() => clearPrompt()} className="mr-3" size="sm"> Clear </Button>
             <br />
+            <br />
+            {imageInfo && imageInfo.url && <div> Image size: {imageInfo.width} x {imageInfo.height}, timings: {imageInfo.timings}, model: {imageInfo.modelName}, content_type: {imageInfo.content_type} </div>}
 
-            {imageInfo && imageInfo.url && <div> Image size: {imageInfo.width} x {imageInfo.height}, timings: {imageInfo.timings}, model: {imageInfo.modelName}</div>}
+            <br /><hr /><br />
+
             {imageInfo && imageInfo.url && <img src={imageInfo.url} />}
 
             {/* <Button href="https://vercel.com/new/git/external?repository-url=https://github.com/Blazity/next-enterprise" intent="secondary"> Deploy Now</Button> */}
