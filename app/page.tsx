@@ -9,7 +9,7 @@ interface ImageInfo {
   width?: number;
   height?: number;
   content_type: string;
-  timings?: any;
+  timings?: number;
   prompt: string;
   requestId: string;
   modelName: string;
