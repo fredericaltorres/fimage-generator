@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from "components/Button/Button"
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { modelInfos } from './api/generateImage/modelInfos';
 
 interface ImageInfo {
