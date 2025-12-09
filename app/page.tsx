@@ -15,6 +15,8 @@ interface ImageInfo {
   modelName: string;
 }
 
+
+
 const blankImageInfo: ImageInfo = { url: "", width: 0, height: 0, content_type: "", timings: 0, prompt: "", requestId: "", modelName: "" }
 
 function GetWordCountDifference(prompt1: string, prompt2: string) {
