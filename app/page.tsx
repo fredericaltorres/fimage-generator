@@ -102,7 +102,7 @@ export default function Web() {
           <div className="mx-auto place-self-center">
 
             <h1 className="mb-4 max-w-2xl text-4xl leading-none font-extrabold tracking-tight md:text-3xl xl:text-3xl dark:text-white mx-auto">
-              ~Real Time~ Image Generator
+              Live Image Generator
             </h1>
 
             {computingImage && <div>Computing image...</div>}
