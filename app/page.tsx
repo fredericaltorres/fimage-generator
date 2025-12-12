@@ -105,12 +105,13 @@ export default function Web() {
               Live Image Generator
             </h1>
 
-            {computingImage && <div>Computing image...</div>}
-
-            <span className="flex">
+            <div className="flex items-center">
               <span className="m-2">Prompt:</span>
               <textarea value={currentPrompt} onChange={(e) => onPromptChange(e, modelName as string)} rows={4} cols={250} className="border border-black m-2 p-2 rounded w-full max-w-2xl" />
-            </span>
+            </div>
+
+            {computingImage && <div className="ml-2">Computing image...</div>}
+            {!computingImage && <div className="ml-2">Waiting for more words...</div>}
 
             <span className="flex">
               <span className="m-2">Model:</span>&nbsp;&nbsp;
